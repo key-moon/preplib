@@ -1,0 +1,3 @@
+[submodule "prepare_lib/glibc-all-in-one"]
+	path = prepare_lib/glibc-all-in-one
+	url = https://github.com/matrix1001/glibc-all-in-one
