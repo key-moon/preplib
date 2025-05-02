@@ -6,8 +6,8 @@ import subprocess
 import logging
 import requests
 
-from extract_lib.logger import logger
-from extract_lib.index import ImageIndex, LibIndex, index_image
+from extractlib.logger import logger
+from extractlib.index import ImageIndex, LibIndex, index_image
 
 logger.setLevel(logging.INFO)
 

@@ -8,9 +8,9 @@ from subprocess import check_output
 from typing import NamedTuple, Optional, Tuple, Union
 import appdirs
 
-from extract_lib.extract import list_libraries
-from extract_lib.utils import get_image_digest, get_script_path, parse_image_name, run_docker, dest_scripts_path
-from extract_lib.logger import logger
+from extractlib.extract import list_libraries
+from extractlib.utils import get_image_digest, get_script_path, parse_image_name, run_docker, dest_scripts_path
+from extractlib.logger import logger
 
 class LibInfo(NamedTuple):
   image_name: str

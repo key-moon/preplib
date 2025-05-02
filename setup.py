@@ -3,11 +3,13 @@ from setuptools import setup
 setup(
     name="shlib-tools",
     version="0.0.1",
-    install_requires=[],
+    install_requires=[
+        "appdirs==1.4.4"
+    ],
     extras_require={},
     entry_points={
         "console_scripts": [
-            "extract-lib = extract_lib.main:main",
+            "extractlib = extractlib.main:main",
             "patchlib = patchlib.main:main",
         ]
     }

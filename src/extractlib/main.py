@@ -10,11 +10,11 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from extract_lib.index import LibIndex, LibInfo, find_image, find_suitable_images, get_image_index, index_image, default_cache_dir
+from extractlib.index import LibIndex, LibInfo, find_image, find_suitable_images, get_image_index, index_image, default_cache_dir
 
-from extract_lib.logger import logger
-from extract_lib.extract import find_libraries, list_libraries
-from extract_lib.utils import MountOption, get_script_path, parse_image_name, run_docker, is_digest_like
+from extractlib.logger import logger
+from extractlib.extract import find_libraries, list_libraries
+from extractlib.utils import MountOption, get_script_path, parse_image_name, run_docker, is_digest_like
 
 LIBDIGESTINFO_SERVER = "https://key-moon.github.io/preplib-data"
 

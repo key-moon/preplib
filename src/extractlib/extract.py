@@ -3,7 +3,7 @@ from os import PathLike
 from pathlib import Path
 from typing import Optional, Union
 
-from extract_lib.utils import MountOption, get_script_path, run_docker
+from extractlib.utils import MountOption, get_script_path, run_docker
 
 def list_musl_libraries(image_name: str):
   lib_paths: list[str] = []
