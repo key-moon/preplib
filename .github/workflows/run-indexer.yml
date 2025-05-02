@@ -1,0 +1,54 @@
+name: run indexer
+
+on:
+  workflow_dispatch: # for debugging
+  schedule:
+    - cron: '5 0 * * *'
+
+jobs:
+  run-indexer:
+    runs-on: ubuntu-latest
+    env:
+      REPOSITORY_PATH: ./preplib-data # TODO: make absolute paths
+    steps:
+      - name: Setup deploy key
+        run: |
+          mkdir -p ~/.ssh
+          echo '${{ secrets.DATA_DEPLOY_KEY }}' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+      - name: Checkout indexer
+        uses: actions/checkout@v4
+        with:
+          path: preplib
+
+      - name: Checkout data
+        uses: actions/checkout@v4
+        with:
+            repository: key-moon/preplib-data
+            path: preplib-data
+            ssh-key: ${{ secrets.DATA_DEPLOY_KEY }}
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install indexer
+        run: |
+          pip install -e preplib
+
+      - name: Setup indexer
+        run: |
+          git config --global user.name preplib
+          git config --global user.email kymn0116+preplib@gmail.com
+
+      - name: Run crawler
+        run: |
+          logfile_name="/tmp/crawler-$(date '+%Y%m%d-%H%M%S').log"
+
+          python preplib/indexer.py > $logfile_name 2>&1
+          curl -fsS -m 10 --retry 5 --data-binary "@$logfile_name" https://hc-ping.com/${{ secrets.HEALTHCHECK_UUID }}/$?
+
+          rm $logfile_name

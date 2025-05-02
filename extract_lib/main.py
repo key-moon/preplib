@@ -5,15 +5,18 @@ from hmac import digest
 import logging
 import os
 from subprocess import check_output
+import subprocess
 import sys
 from pathlib import Path
 from typing import Optional
 
-from extract_lib.index import LibInfo, find_image, get_image_index, index_image, default_cache_dir
+from extract_lib.index import LibIndex, LibInfo, find_image, find_suitable_images, get_image_index, index_image, default_cache_dir
 
 from extract_lib.logger import logger
 from extract_lib.extract import find_libraries, list_libraries
 from extract_lib.utils import MountOption, get_script_path, parse_image_name, run_docker, is_digest_like
+
+LIBDIGESTINFO_SERVER = "https://key-moon.github.io/preplib-data"
 
 # TODO: extract .debug into the same directory
 def main():
@@ -24,19 +27,16 @@ def main():
   parser.add_argument("--index", action="store_true", help="index libraries in the specified image and exit")
   parser.add_argument("--index-dir", nargs="?", help="index directory (default: user-cache-dir)", default=str(default_cache_dir))
   parser.add_argument("--verbose", "-v", action="store_true", help="enable verbose output")
-  parser.add_argument("--vverbose", "-vv", action="store_true", help="enable debug output")
   parser.add_argument("--quiet", "-q", action="store_true", help="enable quiet output")
   parser.add_argument("image_or_libpaths", nargs="+", help="image")
 
   args = parser.parse_args()
-  if args.vverbose:
+  if args.verbose:
     logger.setLevel(logging.DEBUG)
-  elif args.verbose:
-    logger.setLevel(logging.INFO)
   elif args.quiet:
-    logger.setLevel(logging.ERROR)
-  else:
     logger.setLevel(logging.WARN)
+  else:
+    logger.setLevel(logging.INFO)
 
   if args.index:
     index_image(args.image_or_libpaths[0], args.index_dir)
@@ -48,46 +48,32 @@ def main():
 
   if len(args.image_or_libpaths) != 1 or os.path.exists(args.image_or_libpaths[0]) or is_digest_like(args.image_or_libpaths[0]):
     logger.info(f"searching images from indexed libraries...")
+    image = None
     candidate_images: Optional[dict[str, dict[str, str]]] = None
+    md5_digests = []
+    buildid_digests = []
     for val in args.image_or_libpaths:
       val = str(val)
-      digests = []
       if os.path.exists(val):
-        digests.append(hashlib.md5(open(val, "rb").read()).hexdigest())
+        md5_digests.append((val, hashlib.md5(open(val, "rb").read()).hexdigest()))
         try:
           flag = False
           for line in check_output(["readelf", "-n", val]).decode().splitlines():
             if flag:
-              print(line.split(": ")[-1])
-              digests.append(line.split(": ")[-1].strip())
+              buildid_digests.append((val, line.split(": ")[-1].strip()))
               break
             else:
               flag = "NT_GNU_BUILD_ID" in line
         except:
           pass
-      if is_digest_like(val):
-        digests.append(val)
+      elif is_digest_like(val):
+        md5_digests.append((val, val))
+        buildid_digests.append((val, val))
+      else:
+        logger.error("invalid library file or hash", val)
 
-      logger.debug(f"{digests=}")
-      for digest in digests:
-        images = find_image(digest, index_dir=args.index_dir)
-        logger.debug(f"{digest} -> {images}")
-        if candidate_images is None:
-          candidate_images = {}
-          for image in images:
-            candidate_images[image.image_identifier] = { val: image.path }
-        else:
-          for image in images:
-            if image.image_identifier not in candidate_images:
-              continue
-            candidate_images[image.image_identifier][val] = image.path
-    assert candidate_images is not None
     lib_count = len(args.image_or_libpaths)
-    candidates: list[tuple[str, dict[str, str]]] = []
-    for image_identifier, candidatess in candidate_images.items():
-      if len(candidatess) == lib_count:
-        candidates.append((image_identifier, candidatess))
-
+    index = LibIndex(cache_dir=args.index_dir) # ここで直接index触ってるのかなりキモい
     image_index = get_image_index(args.index_dir)
     def show_image(image_identifier: str, file_paths: dict[str, str], level=logging.INFO):
       repository, _, digest = parse_image_name(image_identifier)
@@ -98,21 +84,32 @@ def main():
       for val, path in file_paths.items():
         logger.log(level, f"- {val} => {path}")
 
-    if len(candidates) == 0:
-      logger.warning(f"no candidates found")
-    elif len(candidates) == 1:
-      show_image(*candidates[0])
-    else:
-      logger.warning(f"multiple images contains the same libraries:")
-      for candidate in candidates:
-        show_image(*candidate, level=logging.WARNING)
-      logger.warning(f"for a now, use last(=usually latest) one")
+    for digests, method in [(md5_digests, "md5"), (buildid_digests, "build_id")]:
+      if lib_count != len(digests): continue
+      candidate_images = find_suitable_images(digests, index)
 
-    image = candidates[-1][0]
-      
-      
+      candidates: list[tuple[str, dict[str, str]]] = []
+      for image_identifier, candidatess in candidate_images.items():
+        if len(candidatess) == lib_count:
+          candidates.append((image_identifier, candidatess))
 
-
+      if len(candidates) == 0:
+        logger.warning(f"no candidates found by {method}")
+        continue
+      elif len(candidates) == 1:
+        show_image(*candidates[0])
+        image = candidates[-1][0]
+        break
+      else:
+        logger.warning(f"multiple images contains the same libraries:")
+        for candidate in candidates:
+          show_image(*candidate, level=logging.WARNING)
+        logger.warning(f"for a now, use last(=usually latest) one") # TODO: affinityみたいなのを使う
+        image = candidates[-1][0]
+        break
+    if image is None:
+      logger.error(f"no candidates found")
+      exit(1)
   else:
     logger.debug(f"use {args.image} as a image name")
     image = args.image
@@ -127,7 +124,7 @@ def main():
     lib_paths = find_libraries(image, args.binary)
 
   if args.binary is None and args.libs is None:
-    lib_paths = find_libraries(image, "/bin/cat")
+    lib_paths = find_libraries(image, None)
 
   if len(lib_paths) == 0:
     logger.error("library not found")
@@ -135,7 +132,7 @@ def main():
 
   lib_paths = list(set(lib_paths))
 
-  logger.info("spawning container...")
+  logger.info(f"spawning container for image {image}...")
   container_id = check_output(["docker", "run", "--rm", "-d", image, "sleep", "1000"]).strip().decode()
   logger.info(f"spawned. {container_id=}")
 

@@ -5,9 +5,10 @@ import json
 from os import PathLike
 from pathlib import Path
 from subprocess import check_output
-from typing import NamedTuple, Optional, Union
+from typing import NamedTuple, Optional, Tuple, Union
 import appdirs
 
+from extract_lib.extract import list_libraries
 from extract_lib.utils import get_image_digest, get_script_path, parse_image_name, run_docker, dest_scripts_path
 from extract_lib.logger import logger
 
@@ -109,6 +110,12 @@ class ImageIndex:
     caches[image_name].append(new_tag)
     self.dump(caches)
 
+def get_lib_digests(image_name: str, lib_paths: list[str], index_type: str):
+  commands, parser, mount_scripts = index_commands[index_type]
+  logger.debug(f"{index_type=} {commands=}")
+  command_res = run_docker(image_name, *commands, *lib_paths, mount_scripts=mount_scripts)
+  return parser(command_res.decode())
+
 
 def index_image(image_name: str, index_dir: Union[PathLike, str]=default_cache_dir, index_types=["build-id", "md5"]):
   repository_name, image_tag, image_digest = parse_image_name(image_name)
@@ -118,19 +125,9 @@ def index_image(image_name: str, index_dir: Union[PathLike, str]=default_cache_d
 
   index = LibIndex(index_dir)
 
-  output = run_docker(image_name, "sh", "-c", "ldconfig; ldconfig -p").decode()
-  lib_paths = []
-  for line in output.splitlines():
-    if " => " not in line: continue
-    lib, path = line.split(" => ", 1)
-    lib = lib.strip().split()[0]
-    lib_paths.append(path)
-  
+  lib_paths = list_libraries(image_name)  
   for index_type in index_types:
-    commands, parser, mount_scripts = index_commands[index_type]
-    logger.debug(f"{index_type=} {commands=}")
-    command_res = run_docker(image_name, *commands, *lib_paths, mount_scripts=mount_scripts)
-    for path, digest in parser(command_res.decode()):
+    for path, digest in get_lib_digests(image_name, lib_paths, index_type):
       logger.debug(f"{path=} {digest=}")
       index.add(digest, LibInfo(repository_name, image_digest, path))
 
@@ -140,3 +137,21 @@ def find_image(library_digest: str, index_dir: Union[PathLike, str]=default_cach
 
 def get_image_index(index_dir: Union[PathLike, str]=default_cache_dir):
   return ImageIndex(index_dir)
+
+def find_suitable_images(digests: list[Tuple[str, str]], index: LibIndex):
+  candidate_images: Optional[dict[str, dict[str, str]]] = None
+  for key, digest in digests:
+    logger.debug(f"{digests=}")
+    images = index.load(digest)
+    logger.debug(f"{digest} -> {images}")
+    if candidate_images is None:
+      candidate_images = {}
+      for image in images:
+        candidate_images[image.image_identifier] = { key: image.path }
+    else:
+      for image in images:
+        if image.image_identifier not in candidate_images:
+          continue
+        candidate_images[image.image_identifier][key] = image.path
+  assert candidate_images is not None
+  return candidate_images
