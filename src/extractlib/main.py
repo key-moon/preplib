@@ -111,7 +111,7 @@ def main():
       logger.error(f"no candidates found")
       exit(1)
   else:
-    image = args.image_or_libpaths
+    image = args.image_or_libpaths[0]
     logger.debug(f"use {image} as a image name")
 
   if args.libs is not None:
