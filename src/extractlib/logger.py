@@ -35,6 +35,6 @@ logger.setLevel(logging.INFO)
 
 if not logger.hasHandlers():
   handler = logging.StreamHandler()
-  formatter = ColoredFormatter("%(message)s [%(pathname)s:%(lineno)d]")
+  formatter = ColoredFormatter("%(message)s [%(filename)s:%(lineno)d]")
   handler.setFormatter(formatter)
   logger.addHandler(handler)
