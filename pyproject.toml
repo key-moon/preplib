@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "shlib-tools"
+version = "0.0.1"
+description = ""
+readme = "README.md"
+requires-python = ">=3.7"
+dependencies = [
+    "appdirs==1.4.4",
+]
+
+[project.optional-dependencies]
+# Add optional dependencies here if needed
+
+[project.scripts]
+extractlib = "extractlib.main:main"
+patchlib = "patchlib.main:main"
