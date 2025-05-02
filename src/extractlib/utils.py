@@ -20,7 +20,6 @@ def run_docker(image_name: str, *commands: str, extra_args=[], mounts: list[Moun
   run_command = ["docker", "run", *extra_args, "--rm"]
   if mount_scripts:
     mounts = mounts + [MountOption(source_scripts_path, dest_scripts_path)]
-  print(mount_scripts, mounts)
   for mount in mounts:
     assert ":" not in f"{mount.source}" and ":" not in f"{mount.dest}"
     if mount.allow_write:
