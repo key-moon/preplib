@@ -32,7 +32,8 @@ def run_docker(image_name: str, *commands: str, extra_args=[], mounts: list[Moun
   return check_output(run_command)
 
 def get_image_digest(image_name: str):
-  return check_output(["docker", "inspect", "--format={{index .RepoDigests 0}}", image_name]).decode().strip()
+  # RepoDigests returns the list of repository@sha256:... style string
+  return check_output(["docker", "inspect", "--format={{index .RepoDigests 0}}", image_name]).decode().strip().split("@")[1]
 
 def parse_image_name(image_name: str):
   last_part = image_name.split("/")[-1]
