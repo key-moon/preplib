@@ -38,6 +38,7 @@ jobs:
       - name: Install indexer
         run: |
           pip install -e preplib
+          pip install requests # indexer requires requests
 
       - name: Setup indexer
         run: |
@@ -46,5 +47,4 @@ jobs:
 
       - name: Run crawler
         run: |
-          ls -la
           python preplib/indexer.py
