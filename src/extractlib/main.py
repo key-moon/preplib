@@ -1,20 +1,17 @@
 #!/bin/python
 from argparse import ArgumentParser
 import hashlib
-from hmac import digest
 import logging
 import os
 from subprocess import check_output
-import subprocess
-import sys
 from pathlib import Path
 from typing import Optional
 
-from extractlib.index import LibIndex, LibInfo, find_image, find_suitable_images, get_image_index, index_image, default_cache_dir
+from extractlib.index import LibIndex, find_suitable_images, get_image_index, index_image, default_cache_dir
 
 from extractlib.logger import logger
 from extractlib.extract import find_libraries, list_libraries
-from extractlib.utils import MountOption, get_script_path, parse_image_name, run_docker, is_digest_like
+from extractlib.utils import parse_image_name, is_digest_like
 
 LIBDIGESTINFO_SERVER = "https://key-moon.github.io/preplib-data"
 

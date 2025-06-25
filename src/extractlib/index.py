@@ -1,15 +1,12 @@
 from ast import literal_eval
-from collections import namedtuple
-from dataclasses import dataclass
 import json
 from os import PathLike
 from pathlib import Path
-from subprocess import check_output
 from typing import NamedTuple, Optional, Tuple, Union
 import appdirs
 
 from extractlib.extract import list_libraries
-from extractlib.utils import get_image_digest, get_script_path, parse_image_name, run_docker, dest_scripts_path
+from extractlib.utils import get_script_path, parse_image_name, run_docker
 from extractlib.logger import logger
 
 class LibInfo(NamedTuple):
