@@ -48,3 +48,9 @@ jobs:
       - name: Run crawler
         run: |
           python preplib/indexer.py
+          cd preplib-data
+          if [ -n "$(git status --porcelain)" ]; then
+            git add .
+            git commit -m "[auto commit] indexx"
+            git push
+          fi
