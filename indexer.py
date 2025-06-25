@@ -33,6 +33,8 @@ indexed_tags = set()
 for tags in image_index.load().values():
   indexed_tags.update(filter(is_date_pinned_tag_name, tags))
 
+crawl_skipped = set()
+
 # TODO: index arm image
 ARCH = "amd64"
 # TODO: index debian and alpine
@@ -53,21 +55,23 @@ for repository in ["amd64/ubuntu", "library/ubuntu"]:
         continue
       # prevent from pulling v1 image
       if "media_type" in tag_info and tag_info["media_type"] == "application/vnd.docker.distribution.manifest.v1+prettyjws":
-        logger.info(f'skip v1 image {tag_name}')
+        logger.debug(f'skip v1 image {tag_name}')
         continue
 
       # parse [name]-[date] style tag like jammy-20250530
       # TODO: handle -slim image for debian
       version_name, image_date = tag_name.split('-')
 
-      if "digest" in tag_info:
+      is_singlearch_repository = not repository.startswith("library")
+      # the old single-arch tag info does not have the digest for the tag....
+      if len(tag_info["images"]) == 1 and tag_info["images"][0]["architecture"] == ARCH:
+        digest = tag_info["images"][0]["digest"]
+      elif is_singlearch_repository:
+        digest = next(filter(lambda image: image["architecture"] == ARCH, tag_info["images"]))["digest"]
+      elif "digest" in tag_info:
         digest = tag_info["digest"]
       else:
-        # the old single-arch tag info does not have the digest for the tag....
-        if len(tag_info["images"]) == 1 and tag_info["images"][0]["architecture"] == ARCH:
-          digest = tag_info["images"][0]["digest"]
-        else:
-          digest = None
+        digest = None
 
       # check to avoid indexing the multi-arch image
       is_single_arch = any([image_info["digest"] == digest and image_info["architecture"] == ARCH for image_info in tag_info["images"]])
@@ -75,9 +79,9 @@ for repository in ["amd64/ubuntu", "library/ubuntu"]:
         continue
 
       if tag_name in indexed_tags:
+        crawl_skipped.add(tag_name)
         continue
 
-      is_singlearch_repository = not repository.startswith("library")
       # For the index, use product instead of arch/product for the sake of the disambiguation.
       # product@digest exist if arch/product@digest exist, but opposite doesn't hold. so we prefer product@digest.
       if is_singlearch_repository:
@@ -103,3 +107,7 @@ for repository in ["amd64/ubuntu", "library/ubuntu"]:
       
       subprocess.check_call(["docker", "image", "rm", image_name])
       logger.debug(f'removed image: {image_name=}')
+
+lost_tracked_image = indexed_tags - crawl_skipped
+if len(lost_tracked_image):
+  logger.warning(f"we have some lost tracked images: {lost_tracked_image}")
