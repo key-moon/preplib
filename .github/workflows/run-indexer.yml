@@ -46,10 +46,5 @@ jobs:
 
       - name: Run crawler
         run: |
-          logfile_name="/tmp/crawler-$(date '+%Y%m%d-%H%M%S').log"
-
-          python preplib/indexer.py > $logfile_name 2>&1
-          cat $logfile_name
-          curl -fsS -m 10 --retry 5 --data-binary "@$logfile_name" https://hc-ping.com/${{ secrets.HEALTHCHECK_UUID }}/$?
-
-          rm $logfile_name
+          ls -la
+          python preplib/indexer.py
