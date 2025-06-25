@@ -37,7 +37,7 @@ for tags in image_index.load().values():
 ARCH = "amd64"
 # TODO: index debian and alpine
 for repository in ["amd64/ubuntu", "library/ubuntu"]:
-  print("[+] getting mappings...")
+  print("[+] getting the mapping...")
   product = repository.split("/")[1]
   name_to_version: dict[str, str] = get_name_mapping(product)
 
@@ -52,7 +52,7 @@ for repository in ["amd64/ubuntu", "library/ubuntu"]:
       if not is_date_pinned_tag_name(tag_name):
         continue
       # prevent from pulling v1 image
-      if tag_info["media_type"] == "application/vnd.docker.distribution.manifest.v1+prettyjws":
+      if "media_type" in tag_info and tag_info["media_type"] == "application/vnd.docker.distribution.manifest.v1+prettyjws":
         logger.info(f'skip v1 image {tag_name}')
         continue
 
