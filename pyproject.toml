@@ -16,5 +16,5 @@ dependencies = [
 # Add optional dependencies here if needed
 
 [project.scripts]
-extractlib = "extractlib.main:main"
+preplib = "preplib.main:main"
 patchlib = "patchlib.main:main"

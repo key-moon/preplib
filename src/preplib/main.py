@@ -7,11 +7,11 @@ from subprocess import check_output
 from pathlib import Path
 from typing import Optional
 
-from extractlib.index import LibIndex, find_suitable_images, get_image_index, index_image, default_cache_dir
+from preplib.index import LibIndex, find_suitable_images, get_image_index, index_image, default_cache_dir
 
-from extractlib.logger import logger
-from extractlib.extract import find_libraries, list_libraries
-from extractlib.utils import parse_image_name, is_digest_like
+from preplib.logger import logger
+from preplib.extract import find_libraries, list_libraries
+from preplib.utils import parse_image_name, is_digest_like
 
 LIBDIGESTINFO_SERVER = "https://key-moon.github.io/preplib-data"
 

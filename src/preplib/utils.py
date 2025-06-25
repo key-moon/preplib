@@ -11,7 +11,7 @@ class MountOption:
   allow_write: bool=False
 
 source_scripts_path = Path(__file__).parent / "scripts"
-dest_scripts_path = Path("/extractlib_scripts")
+dest_scripts_path = Path("/preplib_scripts")
 
 def get_script_path(script_name):
   return str(dest_scripts_path / script_name)

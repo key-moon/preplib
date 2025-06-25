@@ -5,9 +5,9 @@ from pathlib import Path
 from typing import NamedTuple, Optional, Tuple, Union
 import appdirs
 
-from extractlib.extract import list_libraries
-from extractlib.utils import get_script_path, parse_image_name, run_docker
-from extractlib.logger import logger
+from preplib.extract import list_libraries
+from preplib.utils import get_script_path, parse_image_name, run_docker
+from preplib.logger import logger
 
 class LibInfo(NamedTuple):
   image_name: str
