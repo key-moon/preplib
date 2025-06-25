@@ -13,19 +13,27 @@ from preplib.logger import logger
 from preplib.extract import find_libraries, list_libraries
 from preplib.utils import parse_image_name, is_digest_like
 
+# TODO: コンフィグファイルを作る / TUI でコンフィグをいじれるようにする
+#       コンフィグ内容: index の位置s / デフォルトの output / index を自動で clone および pull するか / index server の URLs
+#       debuginfod の URLs / 自動で 
+
+# TODO: 複数の index を使うように（特にURL）
+# TODO: debuginfod で引っ張ってきたシンボルを使ってpatch
+# TODO: サーバーを使うようにする / サーバーの URL を configurable にする
+# TODO: ierae CTF で壊れたやつの調査
 LIBDIGESTINFO_SERVER = "https://key-moon.github.io/preplib-data"
 
 # TODO: extract .debug into the same directory
 def main():
   parser = ArgumentParser()
   parser.add_argument("--output", "-o", help="output directory", default="./lib")
-  parser.add_argument("--binary", "-b", help="extract all of dependencies of binary")
-  parser.add_argument("--libs", "-l", nargs="*", help="specify library names to extract")
+  parser.add_argument("--binary", "-b", help="extract all of binary dependencies using ldd (exclusive to --libs)")
+  parser.add_argument("--libs", "-l", nargs="*", help="specify library names to extract (exclusive to --binary)")
   parser.add_argument("--index", action="store_true", help="index libraries in the specified image and exit")
   parser.add_argument("--index-dir", nargs="?", help="index directory (default: user-cache-dir)", default=str(default_cache_dir))
   parser.add_argument("--verbose", "-v", action="store_true", help="enable verbose output")
   parser.add_argument("--quiet", "-q", action="store_true", help="enable quiet output")
-  parser.add_argument("image_or_libpaths", nargs="+", help="image")
+  parser.add_argument("image_or_libinfo", nargs="+", help="image tag(ubuntu:jammy) | library path(/path/to/libc.so.6) | build-id(89c3cb85...) | md5sum")
 
   args = parser.parse_args()
   if args.verbose:
@@ -55,6 +63,7 @@ def main():
         md5_digests.append((val, hashlib.md5(open(val, "rb").read()).hexdigest()))
         try:
           flag = False
+          # extract the line after the `NT_GNU_BUILD_ID`
           for line in check_output(["readelf", "-n", val]).decode().splitlines():
             if flag:
               buildid_digests.append((val, line.split(": ")[-1].strip()))
