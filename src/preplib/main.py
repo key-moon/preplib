@@ -44,20 +44,20 @@ def main():
     logger.setLevel(logging.INFO)
 
   if args.index:
-    index_image(args.image_or_libpaths[0], args.index_dir)
+    index_image(args.image_or_libinfo[0], args.index_dir)
     exit(0)
 
   outdir = args.output
 
   lib_paths = []
 
-  if len(args.image_or_libpaths) != 1 or os.path.exists(args.image_or_libpaths[0]) or is_digest_like(args.image_or_libpaths[0]):
+  if len(args.image_or_libinfo) != 1 or os.path.exists(args.image_or_libinfo[0]) or is_digest_like(args.image_or_libinfo[0]):
     logger.info(f"searching images from indexed libraries...")
     image = None
     candidate_images: Optional[dict[str, dict[str, str]]] = None
     md5_digests = []
     buildid_digests = []
-    for val in args.image_or_libpaths:
+    for val in args.image_or_libinfo:
       val = str(val)
       if os.path.exists(val):
         md5_digests.append((val, hashlib.md5(open(val, "rb").read()).hexdigest()))
@@ -78,7 +78,7 @@ def main():
       else:
         logger.error("invalid library file or hash", val)
 
-    lib_count = len(args.image_or_libpaths)
+    lib_count = len(args.image_or_libinfo)
     index = LibIndex(cache_dir=args.index_dir) # ここで直接index触ってるのかなりキモい
     image_index = get_image_index(args.index_dir)
     def show_image(image_identifier: str, file_paths: dict[str, str], level=logging.INFO):
@@ -117,7 +117,7 @@ def main():
       logger.error(f"no candidates found")
       exit(1)
   else:
-    image = args.image_or_libpaths[0]
+    image = args.image_or_libinfo[0]
     logger.debug(f"use {image} as a image name")
 
   if args.libs is not None:
